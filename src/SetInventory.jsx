@@ -188,6 +188,8 @@ const sortSlots = (parts) =>
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
+    // Guarded: a missing matchMedia would otherwise crash the whole panel.
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduced(mq.matches);
     const on = (e) => setReduced(e.matches);
@@ -298,6 +300,9 @@ function SlotShape({ slot, color, cx = 100, dy = 0, family = "minifig" }) {
     </g>
   );
 }
+
+const BODY = new Set(["hair", "head", "torso", "skirt", "legs"]);
+const hasBody = (fig) => (fig?.parts || []).some((p) => BODY.has(p.slot));
 
 function Minifig({ fig, exploded = false, height = 150, showAccessory = true }) {
   // If no part resolved to a body slot, this is a figure family the matcher
