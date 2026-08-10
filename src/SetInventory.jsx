@@ -301,6 +301,33 @@ function SlotShape({ slot, color, cx = 100, dy = 0, family = "minifig" }) {
   );
 }
 
+/**
+ * Animals aren't minifigures, so Rebrickable lists them as ordinary inventory
+ * parts. They read as characters though, so they're lifted out of the brick
+ * grid into the roster. Name matching is a heuristic — anything missed simply
+ * stays in the Bricks tab, which is a harmless failure mode.
+ */
+const CREATURE_RE = new RegExp(
+  "\\b(animal|dog|puppy|cat|kitten|horse|foal|pony|bird|parrot|owl|falcon|fish|shark|dolphin|" +
+  "frog|snake|spider|scorpion|dragon|bat|monkey|ape|bear|panda|rabbit|bunny|hedgehog|turtle|" +
+  "tortoise|crab|lobster|butterfly|mouse|rat|hamster|goat|cow|calf|pig|piglet|sheep|lamb|" +
+  "chicken|hen|rooster|duck|penguin|lizard|crocodile|alligator|dinosaur|wolf|fox|deer|elephant|" +
+  "lion|tiger|leopard|giraffe|zebra|camel|llama|alpaca|squirrel|raccoon|hippo|rhino|octopus|" +
+  "whale|seal|walrus|otter|bee|snail|worm|creature|beast)\\b",
+  "i"
+);
+const isCreature = (part) => CREATURE_RE.test(part?.name || "");
+
+/** Wrap a creature part so it can be rendered by the same roster card. */
+const creatureAsFigure = (part) => ({
+  set_num: part.part_num,
+  set_name: part.name.replace(/^Animal,?\s*/i, "").split(/\s*[,(]/)[0],
+  set_img_url: part.img || null,
+  quantity: part.quantity,
+  isCreature: true,
+  parts: [{ ...part, slot: "accessory" }],
+});
+
 const BODY = new Set(["hair", "head", "torso", "skirt", "legs"]);
 const hasBody = (fig) => (fig?.parts || []).some((p) => BODY.has(p.slot));
 
@@ -319,8 +346,10 @@ function Minifig({ fig, exploded = false, height = 150, showAccessory = true }) 
   }
   const family = figFamily(fig);
   const parts = sortSlots(fig.parts).filter((p) => showAccessory || p.slot !== "accessory");
+  // Tall enough to contain the exploded spread; clipped so a lifted headwear
+  // piece can never paint over the card above it.
   return (
-    <svg viewBox="0 0 200 230" style={{ height, width: "auto", overflow: "visible" }} aria-label={fig.set_name}>
+    <svg viewBox="0 -54 200 300" style={{ height, width: "auto", overflow: "hidden" }} aria-label={fig.set_name}>
       {parts.map((p) => {
         const g = GEO[p.slot] || GEO.accessory;
         const cx = p.slot === "accessory" ? 152 : 100;
@@ -510,14 +539,29 @@ function ExplodedDiagram({ fig }) {
   const [focus, setFocus] = useState(null);
 
   useEffect(() => {
+    setShowPhoto(Boolean(fig.set_img_url));
     setOpen(reduced);
     const t = setTimeout(() => setOpen(true), reduced ? 0 : 90);
     return () => clearTimeout(t);
-  }, [fig.set_num, reduced]);
+  }, [fig.set_num, fig.set_img_url, reduced]);
 
   const parts = sortSlots(fig.parts);
   const family = figFamily(fig);
-  const [showPhoto, setShowPhoto] = useState(false);
+
+  // Anchor y for each label, pushed apart so adjacent rows never overlap.
+  const MIN_GAP = 15;
+  const anchors = {};
+  {
+    let last = -Infinity;
+    for (const p of parts) {
+      const g = GEO[p.slot] || GEO.accessory;
+      const base = g.y + (open ? g.explode : 0) + (p.slot === "torso" ? 24 : p.slot === "legs" ? 20 : 14);
+      const y = Math.max(base, last + MIN_GAP);
+      anchors[p.part_num] = y;
+      last = y;
+    }
+  }
+  const [showPhoto, setShowPhoto] = useState(Boolean(fig.set_img_url));
 
   return (
     <div className="flex flex-col md:flex-row gap-6 md:gap-2">
@@ -543,13 +587,13 @@ function ExplodedDiagram({ fig }) {
           <img src={fig.set_img_url} alt={fig.set_name}
                style={{ height: 300, width: "auto", objectFit: "contain" }} />
         ) : (
-        <svg viewBox="0 0 210 330" style={{ height: 330, width: 210, overflow: "visible" }}>
+        <svg viewBox="0 -56 210 400" style={{ height: 340, width: 210, overflow: "hidden" }}>
           {parts.map((p) => {
             const g = GEO[p.slot] || GEO.accessory;
             const cx = p.slot === "accessory" ? 148 : 88;
             const dy = open ? g.explode : 0;
             const dim = focus && focus !== p.part_num;
-            const anchorY = g.y + dy + (p.slot === "torso" ? 24 : p.slot === "legs" ? 20 : 14);
+            const anchorY = anchors[p.part_num];
             return (
               <g
                 key={p.part_num}
@@ -730,12 +774,92 @@ function BrickInventory({ rows: ALL = DEMO_BRICKS }) {
   );
 }
 
+/* ------------------------------------------------------------- creature */
+
+function CreatureDetail({ fig }) {
+  const part = fig.parts[0];
+  return (
+    <div>
+      <div className="flex items-center justify-center p-3 mb-4"
+           style={{ background: "#fff", border: `1px solid rgba(0,0,0,0.08)`, borderRadius: 3, minHeight: 180 }}>
+        <PartImage src={part.img} alt={part.name} size={170}
+          fallback={<span style={{ width: 60, height: 60, borderRadius: 4, background: part.color, border: "1px solid rgba(0,0,0,0.2)", display: "block" }} />} />
+      </div>
+      <div className="pb-2 mb-1" style={{ borderBottom: `1px solid ${C.panelEdge}` }}>
+        <Stamp>SINGLE MOULDED ELEMENT</Stamp>
+      </div>
+      <div className="py-2.5">
+        <div style={{ fontFamily: display, fontSize: 12.5, fontWeight: 500, color: C.ink, lineHeight: 1.3 }}>{part.name}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <Stamp tone={C.inkSoft}>{part.part_num}</Stamp>
+          <Stamp>{part.color_name}</Stamp>
+          <RarityTag numSets={part.num_sets} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ set overview */
+
+function SetOverview({ setInfo, minifigs, bricks, creatures, rareTotal, pending }) {
+  const stat = (label, value) => (
+    <div key={label} className="py-2" style={{ borderBottom: `1px solid rgba(0,0,0,0.07)` }}>
+      <div><Stamp>{label.toUpperCase()}</Stamp></div>
+      <div style={{ fontFamily: display, fontSize: 15, fontWeight: 600, color: C.ink, marginTop: 2 }}>{value}</div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col md:flex-row gap-6">
+      <div className="md:w-[58%]">
+        <div
+          className="flex items-center justify-center p-4"
+          style={{ background: C.panel, border: `1px solid ${C.panelEdge}`, borderRadius: 3, minHeight: 260 }}
+        >
+          {setInfo.set_img_url ? (
+            <img
+              src={setInfo.set_img_url}
+              alt={setInfo.name}
+              style={{ maxWidth: "100%", maxHeight: 420, objectFit: "contain" }}
+            />
+          ) : (
+            <Stamp>NO SET IMAGE AVAILABLE</Stamp>
+          )}
+        </div>
+      </div>
+
+      <div className="md:w-[42%]">
+        <div className="p-5" style={{ background: C.panel, border: `1px solid ${C.panelEdge}`, borderRadius: 3 }}>
+          {stat("Set number", setInfo.set_num)}
+          {stat("Released", setInfo.year ?? "—")}
+          {setInfo.theme && stat("Theme", setInfo.theme)}
+          {stat("Total pieces", (setInfo.num_parts ?? 0).toLocaleString())}
+          {stat("Distinct elements", pending ? "counting…" : bricks.length.toLocaleString())}
+          {stat("Characters", `${minifigs.length} figure${minifigs.length === 1 ? "" : "s"}${creatures.length ? ` · ${creatures.length} animal${creatures.length === 1 ? "" : "s"}` : ""}`)}
+          <div className="pt-3">
+            <Stamp>RARE ELEMENTS</Stamp>
+            <div style={{ fontFamily: display, fontSize: 15, fontWeight: 600, color: rareTotal > 0 ? C.flag : C.ink, marginTop: 2 }}>
+              {pending ? "checking…" : rareTotal > 0 ? `${rareTotal} appear in 3 sets or fewer` : "None — all common tooling"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------------------------------------- shell */
 
 export default function SetInventory({ setInfo = DEMO_SET, minifigs = DEMO_MINIFIGS, bricks = DEMO_BRICKS, pending = false }) {
-  const [tab, setTab] = useState("characters");
-  const [selected, setSelected] = useState(minifigs[0]);
-  useEffect(() => { setSelected(minifigs[0]); }, [minifigs]);
+  const [tab, setTab] = useState("set");
+  const [selected, setSelected] = useState(null);
+
+  const creatures = useMemo(() => bricks.filter(isCreature).map(creatureAsFigure), [bricks]);
+  const plainBricks = useMemo(() => bricks.filter((b) => !isCreature(b)), [bricks]);
+  const roster = useMemo(() => [...minifigs, ...creatures], [minifigs, creatures]);
+
+  useEffect(() => { setSelected((cur) => roster.find((f) => f.set_num === cur?.set_num) || roster[0] || null); }, [roster]);
 
   const rareTotal =
     minifigs.reduce((n, f) => n + f.parts.filter((p) => isRare(p.num_sets)).length, 0) +
@@ -792,47 +916,64 @@ export default function SetInventory({ setInfo = DEMO_SET, minifigs = DEMO_MINIF
 
         {/* tabs */}
         <nav className="mb-6" style={{ borderBottom: `1px solid ${C.panelEdge}` }}>
+          <button style={tabStyle(tab === "set")} onClick={() => setTab("set")}>
+            Set
+          </button>
           <button style={tabStyle(tab === "characters")} onClick={() => setTab("characters")}>
-            Characters · {minifigs.length}
+            Characters · {pending && roster.length === 0 ? "…" : roster.length}
           </button>
           <button style={tabStyle(tab === "bricks")} onClick={() => setTab("bricks")}>
-            Bricks · {pending ? "…" : bricks.length}
+            Bricks · {pending ? "…" : plainBricks.length}
           </button>
         </nav>
 
-        {!selected ? (
-          <div className="py-20 text-center"><Stamp>LOADING INVENTORY</Stamp></div>
+        {tab === "set" ? (
+          <SetOverview
+            setInfo={setInfo}
+            minifigs={minifigs}
+            bricks={plainBricks}
+            creatures={creatures}
+            rareTotal={rareTotal}
+            pending={pending}
+          />
         ) : tab === "characters" ? (
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* roster */}
-            <div className="lg:w-[58%]">
-              <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
-                {minifigs.map((f) => (
-                  <FigureCard key={f.set_num} fig={f} active={selected?.set_num === f.set_num} onSelect={setSelected} />
-                ))}
-              </div>
-            </div>
-
-            {/* detail */}
-            <div className="lg:w-[42%]">
-              <div
-                className="p-5 lg:sticky lg:top-5"
-                style={{ background: C.panel, border: `1px solid ${C.panelEdge}`, borderRadius: 3, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}
-              >
-                <div className="mb-4">
-                  <h2 style={{ fontFamily: display, fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em", margin: 0 }}>
-                    {selected.set_name}
-                  </h2>
-                  <div className="mt-1">
-                    <Stamp>{selected.set_num}</Stamp>
-                  </div>
+          !selected ? (
+            <div className="py-20 text-center"><Stamp>{pending ? "LOADING CHARACTERS" : "NO CHARACTERS IN THIS SET"}</Stamp></div>
+          ) : (
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="lg:w-[58%]">
+                <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+                  {roster.map((f) => (
+                    <FigureCard key={f.set_num} fig={f} active={selected?.set_num === f.set_num} onSelect={setSelected} />
+                  ))}
                 </div>
-                <ExplodedDiagram key={selected.set_num} fig={selected} />
+              </div>
+
+              <div className="lg:w-[42%]">
+                <div
+                  className="p-5 lg:sticky lg:top-5"
+                  style={{ background: C.panel, border: `1px solid ${C.panelEdge}`, borderRadius: 3, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}
+                >
+                  <div className="mb-4">
+                    <h2 style={{ fontFamily: display, fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em", margin: 0 }}>
+                      {selected.set_name}
+                    </h2>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Stamp>{selected.set_num}</Stamp>
+                      {selected.isCreature && <Stamp tone={C.azure}>ANIMAL</Stamp>}
+                    </div>
+                  </div>
+                  {selected.isCreature ? (
+                    <CreatureDetail fig={selected} />
+                  ) : (
+                    <ExplodedDiagram key={selected.set_num} fig={selected} />
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )
         ) : (
-          <BrickInventory rows={bricks} />
+          <BrickInventory rows={plainBricks} />
         )}
 
         <footer className="mt-10 pt-4" style={{ borderTop: `1px solid ${C.panelEdge}` }}>
