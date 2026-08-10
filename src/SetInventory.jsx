@@ -432,9 +432,13 @@ function BrickGlyph({ cat, color, size = 40 }) {
 /** Real photo, falling back to the drawn shape if the image 404s or is absent. */
 function PartImage({ src, alt, size = 34, fallback = null }) {
   const [broken, setBroken] = useState(false);
+  // Reset on src change, or one failed image poisons every later part shown
+  // in the same slot.
+  useEffect(() => { setBroken(false); }, [src]);
   if (!src || broken) return fallback;
   return (
     <img
+      key={src}
       src={src}
       alt={alt || ""}
       loading="lazy"
@@ -456,6 +460,7 @@ function FigurePhoto({ fig, height, fallback }) {
   if (!fig?.set_img_url || broken) return fallback;
   return (
     <img
+      key={fig.set_img_url}
       src={fig.set_img_url}
       alt={fig.set_name}
       loading="lazy"
@@ -474,6 +479,7 @@ function Stamp({ children, tone = C.muted }) {
         letterSpacing: "0.06em",
         color: tone,
         fontWeight: 500,
+        overflowWrap: "anywhere",
       }}
     >
       {children}
@@ -660,7 +666,7 @@ function ExplodedDiagram({ fig }) {
       </div>
 
       {/* component rail */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1" style={{ minWidth: 0 }}>
         <div className="pb-2 mb-1" style={{ borderBottom: `1px solid ${C.panelEdge}` }}>
           <Stamp>COMPONENTS · {parts.length}</Stamp>
         </div>
@@ -687,8 +693,9 @@ function ExplodedDiagram({ fig }) {
                 }
               />
             </span>
-            <div className="min-w-0 flex-1">
-              <div style={{ fontFamily: display, fontSize: 12.5, fontWeight: 500, color: C.ink, lineHeight: 1.3 }}>
+            <div className="flex-1" style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: display, fontSize: 12.5, fontWeight: 500, color: C.ink, lineHeight: 1.3,
+                            overflowWrap: "anywhere", wordBreak: "break-word" }}>
                 {p.name}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
@@ -718,7 +725,7 @@ function BrickInventory({ rows: ALL = DEMO_BRICKS }) {
       sort === "quantity" ? b.quantity - a.quantity : sort === "rarity" ? (a.num_sets ?? Infinity) - (b.num_sets ?? Infinity) : a.name.localeCompare(b.name)
     );
     return r;
-  }, [cat, sort, rareOnly]);
+  }, [ALL, cat, sort, rareOnly]);
 
   const btn = (on) => ({
     fontFamily: mono,
@@ -764,7 +771,8 @@ function BrickInventory({ rows: ALL = DEMO_BRICKS }) {
               <PartImage src={b.img} alt={b.name} size={42} fallback={<BrickGlyph cat={b.cat} color={b.color} />} />
             </div>
             <div className="min-w-0 flex-1">
-              <div style={{ fontFamily: display, fontSize: 12.5, fontWeight: 500, color: C.ink, lineHeight: 1.25 }}>{b.name}</div>
+              <div style={{ fontFamily: display, fontSize: 12.5, fontWeight: 500, color: C.ink, lineHeight: 1.25,
+                            overflowWrap: "anywhere", wordBreak: "break-word" }}>{b.name}</div>
               <div className="mt-1 flex items-center gap-2 flex-wrap">
                 <Stamp tone={C.inkSoft}>{b.part_num}</Stamp>
                 <Stamp>{b.color_name}</Stamp>
@@ -981,7 +989,7 @@ export default function SetInventory({ setInfo = DEMO_SET, minifigs = DEMO_MINIF
                     </div>
                   </div>
                   {selected.isCreature ? (
-                    <CreatureDetail fig={selected} />
+                    <CreatureDetail key={selected.set_num} fig={selected} />
                   ) : (
                     <ExplodedDiagram key={selected.set_num} fig={selected} />
                   )}
@@ -994,9 +1002,7 @@ export default function SetInventory({ setInfo = DEMO_SET, minifigs = DEMO_MINIF
         )}
 
         <footer className="mt-10 pt-4" style={{ borderTop: `1px solid ${C.panelEdge}` }}>
-          <Stamp>
-            PROTOTYPE · MOCK DATA SHAPED TO REBRICKABLE V3 · SWAP THE THREE CONSTANTS FOR FETCH CALLS
-          </Stamp>
+          <Stamp>INVENTORY DATA FROM REBRICKABLE</Stamp>
         </footer>
       </div>
     </div>

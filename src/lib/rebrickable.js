@@ -6,8 +6,9 @@
 const BASE = import.meta.env?.VITE_PROXY_URL || "/api/rebrickable";
 
 const memo = new Map(); // in-process cache; the worker holds the durable one
+const MAX_RETRIES = 2;
 
-async function get(path, params = {}) {
+async function get(path, params = {}, attempt = 0) {
   // The path rides as a query parameter so the proxy is a plain file with no
   // dynamic-route matching. Trailing slash is stripped here and restored there.
   const clean = path.replace(/\/+$/, "");
@@ -18,10 +19,15 @@ async function get(path, params = {}) {
   const p = (async () => {
     const res = await fetch(url);
     if (res.status === 429) {
-      const wait = Number(res.headers.get("Retry-After") || 2) * 1000;
+      // Bounded: an unbounded retry loop hangs the load forever when the API
+      // keeps refusing, with no error ever surfacing to the user.
+      if (attempt >= MAX_RETRIES) {
+        throw new ApiError("Rebrickable is rate limiting these requests. Wait a moment and load again.", 429, path);
+      }
+      const wait = Number(res.headers.get("Retry-After") || 2) * 1000 * (attempt + 1);
       await sleep(wait);
       memo.delete(url);
-      return get(path, params);
+      return get(path, params, attempt + 1);
     }
     // A routing failure returns an HTML error page, not JSON. Without this
     // check a missing proxy is indistinguishable from a missing set.

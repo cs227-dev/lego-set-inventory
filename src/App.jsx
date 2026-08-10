@@ -58,7 +58,9 @@ export default function App() {
           <div className="p-3" style={{ background: C.panel, border: `1px solid ${error ? C.flag : C.edge}`, borderRadius: 3 }}>
             {error ? (
               <div>
-                <div style={{ fontFamily: display, fontSize: 13, color: C.ink }}>{error}</div>
+                <div style={{ fontFamily: display, fontSize: 13, color: C.ink }}>
+                  {set ? `Partly loaded — ${error}` : error}
+                </div>
                 <button onClick={retry} className="mt-2 px-2.5 py-1" style={{ fontFamily: mono, fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.07em", background: "transparent", border: `1px solid ${C.flag}`, color: C.flag, borderRadius: 2, cursor: "pointer" }}>
                   Try again
                 </button>
@@ -83,10 +85,16 @@ export default function App() {
         </div>
       )}
 
-      {live && set && !error ? (
+      {/*
+        Render whatever has loaded, even if a later stage failed. Loading is
+        staged, so an error during the minifig or brick fetch used to discard a
+        set that had already arrived — the screen went blank on a first search
+        and worked on the second only because the edge cache served it.
+      */}
+      {live && set ? (
         <SetInventory setInfo={set} minifigs={minifigs} bricks={bricks} pending={stage !== "done"} />
       ) : (
-        !live && <SetInventory />
+        !live && !error && <SetInventory />
       )}
     </div>
   );
