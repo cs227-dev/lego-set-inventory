@@ -107,25 +107,46 @@ async function loadCategories() {
   categoryIndex = new Map();
   for (const c of cats) {
     const n = c.name.toLowerCase();
-    if (n.includes("head") && !n.includes("headwear") && !n.includes("hair")) categoryIndex.set(c.id, "head");
+    // Matches both "Minifig Heads" and "Minidoll Heads" — the shared noun is
+    // what identifies the slot, so no figure-family list is needed here.
+    if (n.includes("skirt") || n.includes("dress")) categoryIndex.set(c.id, "skirt");
     else if (n.includes("hair") || n.includes("headwear") || n.includes("hat")) categoryIndex.set(c.id, "hair");
-    else if (n.includes("torso")) categoryIndex.set(c.id, "torso");
-    else if (n.includes("leg")) categoryIndex.set(c.id, "legs");
+    else if (n.includes("head")) categoryIndex.set(c.id, "head");
+    else if (n.includes("torso") || n.includes("body")) categoryIndex.set(c.id, "torso");
+    else if (n.includes("leg") || n.includes("hip")) categoryIndex.set(c.id, "legs");
   }
   return categoryIndex;
 }
 
+/**
+ * Order matters — first match wins.
+ *
+ * Covers three naming families, because LEGO figures are not one thing:
+ *   minifigs   "Minifig Head", "Minifig Torso"
+ *   mini-dolls "Minidoll Head", "Minidoll Hips and Shorts"   (Friends, Elves)
+ *   bare parts "Hair Long Wavy", "Headgear Cap"              (no figure prefix)
+ *
+ * Skirts are matched before legs: a mini-doll skirt part often names the legs
+ * it sits over, and classifying it as legs would overwrite the actual legs.
+ */
 const NAME_RULES = [
-  [/minifig,? (hair|headgear|headwear|hat|helmet|cap|hood)/i, "hair"],
-  [/minifig,? head\b/i, "head"],
-  [/minifig,? torso\b/i, "torso"],
-  [/minifig,? (leg|hip)/i, "legs"],
+  [/\b(mini\s?doll|minifig)?,? ?(skirt|dress)\b/i, "skirt"],
+  [/\b(mini\s?doll|minifig),? ?(hair|headgear|headwear|hat|helmet|cap|hood)/i, "hair"],
+  [/^(hair|headgear|headwear|hat|helmet|cap|hood)\b/i, "hair"],
+  [/\b(mini\s?doll|minifig),? ?head\b/i, "head"],
+  [/\b(mini\s?doll|minifig),? ?torso\b/i, "torso"],
+  [/\b(mini\s?doll|minifig),? ?(legs?|hips?)\b/i, "legs"],
+  // Bare forms, checked last so a torso naming its arms doesn't win as "arms".
+  [/^(torso)\b/i, "torso"],
+  [/^(hips?|legs?)\b/i, "legs"],
 ];
 
 export function slotOf(part, catIndex) {
+  // Name first: it distinguishes a skirt from the legs in the same category,
+  // which the category id alone cannot do.
+  for (const [re, slot] of NAME_RULES) if (re.test(part.name || "")) return slot;
   const byCat = catIndex?.get(part.part_cat_id);
   if (byCat) return byCat;
-  for (const [re, slot] of NAME_RULES) if (re.test(part.name || "")) return slot;
   return "accessory";
 }
 

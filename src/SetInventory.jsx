@@ -157,8 +157,8 @@ const DEMO_BRICKS = [
 // In the real API, derive the slot from part_cat_id or the part name prefix
 // ("Minifig Head", "Minifig Torso", "Minifig Hair", ...). Everything that
 // doesn't match a body slot is an accessory.
-const SLOT_ORDER = ["hair", "head", "torso", "legs", "accessory"];
-const SLOT_LABEL = { hair: "Headgear", head: "Head", torso: "Torso", legs: "Legs", accessory: "Accessory" };
+const SLOT_ORDER = ["hair", "head", "torso", "skirt", "legs", "accessory"];
+const SLOT_LABEL = { hair: "Headgear", head: "Head", torso: "Torso", skirt: "Skirt", legs: "Legs", accessory: "Accessory" };
 
 // num_sets is null when a rarity lookup failed. `null <= 3` is true in JS, so
 // the unknown case must be handled before any comparison — otherwise every part
@@ -196,6 +196,7 @@ const GEO = {
   hair: { y: 30, explode: -46 },
   head: { y: 56, explode: -18 },
   torso: { y: 92, explode: 0 },
+  skirt: { y: 146, explode: 22 },
   legs: { y: 152, explode: 34 },
   accessory: { y: 108, explode: 70 },
 };
@@ -241,6 +242,18 @@ function SlotShape({ slot, color, cx = 100, dy = 0 }) {
       </g>
     );
 
+  if (slot === "skirt")
+    return (
+      <g>
+        <path
+          d={`M ${cx - 15} ${y} h 30 l 9 34 q -24 5 -48 0 z`}
+          fill={color}
+          stroke={stroke}
+          strokeWidth="1"
+        />
+      </g>
+    );
+
   if (slot === "legs")
     return (
       <g>
@@ -258,7 +271,22 @@ function SlotShape({ slot, color, cx = 100, dy = 0 }) {
   );
 }
 
+const BODY = new Set(["hair", "head", "torso", "skirt", "legs"]);
+const hasBody = (fig) => (fig?.parts || []).some((p) => BODY.has(p.slot));
+
 function Minifig({ fig, exploded = false, height = 150, showAccessory = true }) {
+  // If no part resolved to a body slot, this is a figure family the matcher
+  // doesn't know. Show the catalogue photo rather than an empty frame.
+  if (!hasBody(fig) && fig?.set_img_url) {
+    return (
+      <img
+        src={fig.set_img_url}
+        alt={fig.set_name}
+        style={{ height, width: "auto", objectFit: "contain" }}
+        loading="lazy"
+      />
+    );
+  }
   const parts = sortSlots(fig.parts).filter((p) => showAccessory || p.slot !== "accessory");
   return (
     <svg viewBox="0 0 200 230" style={{ height, width: "auto", overflow: "visible" }} aria-label={fig.set_name}>
