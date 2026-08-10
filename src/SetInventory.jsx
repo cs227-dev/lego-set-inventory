@@ -444,6 +444,27 @@ function PartImage({ src, alt, size = 34, fallback = null }) {
   );
 }
 
+/**
+ * Figure photo that degrades gracefully. Rebrickable does not have a photo for
+ * every minifigure — licensed themes are patchier than others — and a URL that
+ * exists can still fail to load. Either way, fall back to the drawn figure
+ * rather than showing a broken frame.
+ */
+function FigurePhoto({ fig, height, fallback }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [fig?.set_img_url]);
+  if (!fig?.set_img_url || broken) return fallback;
+  return (
+    <img
+      src={fig.set_img_url}
+      alt={fig.set_name}
+      loading="lazy"
+      onError={() => setBroken(true)}
+      style={{ height, width: "auto", objectFit: "contain" }}
+    />
+  );
+}
+
 function Stamp({ children, tone = C.muted }) {
   return (
     <span
@@ -504,11 +525,10 @@ function FigureCard({ fig, active, onSelect }) {
       }}
     >
       <div className="h-[150px] flex items-end justify-center w-full">
-        {fig.set_img_url && !hover ? (
-          <img src={fig.set_img_url} alt={fig.set_name} loading="lazy"
-               style={{ height: 148, width: "auto", objectFit: "contain" }} />
+        {hover ? (
+          <Minifig fig={fig} exploded height={148} />
         ) : (
-          <Minifig fig={fig} exploded={hover} height={148} />
+          <FigurePhoto fig={fig} height={148} fallback={<Minifig fig={fig} height={148} />} />
         )}
       </div>
       <div className="mt-4 w-full">
@@ -584,8 +604,8 @@ function ExplodedDiagram({ fig }) {
           </div>
         )}
         {showPhoto ? (
-          <img src={fig.set_img_url} alt={fig.set_name}
-               style={{ height: 300, width: "auto", objectFit: "contain" }} />
+          <FigurePhoto fig={fig} height={300}
+            fallback={<div className="flex flex-col items-center gap-2 py-8"><Stamp>NO PHOTO IN CATALOGUE</Stamp><Minifig fig={fig} height={240} /></div>} />
         ) : (
         <svg viewBox="0 -56 210 400" style={{ height: 340, width: 210, overflow: "hidden" }}>
           {parts.map((p) => {
@@ -817,15 +837,12 @@ function SetOverview({ setInfo, minifigs, bricks, creatures, rareTotal, pending 
           className="flex items-center justify-center p-4"
           style={{ background: C.panel, border: `1px solid ${C.panelEdge}`, borderRadius: 3, minHeight: 260 }}
         >
-          {setInfo.set_img_url ? (
-            <img
-              src={setInfo.set_img_url}
-              alt={setInfo.name}
-              style={{ maxWidth: "100%", maxHeight: 420, objectFit: "contain" }}
-            />
-          ) : (
-            <Stamp>NO SET IMAGE AVAILABLE</Stamp>
-          )}
+          {/* FigurePhoto covers both a missing URL and one that fails to load. */}
+          <FigurePhoto
+            fig={{ set_img_url: setInfo.set_img_url, set_name: setInfo.name }}
+            height={420}
+            fallback={<Stamp>SET IMAGE UNAVAILABLE</Stamp>}
+          />
         </div>
       </div>
 
