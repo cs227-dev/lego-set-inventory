@@ -158,6 +158,15 @@ const DEMO_BRICKS = [
 // ("Minifig Head", "Minifig Torso", "Minifig Hair", ...). Everything that
 // doesn't match a body slot is an accessory.
 const SLOT_ORDER = ["hair", "head", "torso", "skirt", "legs", "accessory"];
+
+/**
+ * Mini-dolls are a different mould entirely — taller, narrower, with slimmer
+ * limbs — so drawing them with minifig proportions looks wrong. The part names
+ * tell us which family we're in.
+ */
+function figFamily(fig) {
+  return (fig?.parts || []).some((p) => /mini\s?doll/i.test(p.name || "")) ? "minidoll" : "minifig";
+}
 const SLOT_LABEL = { hair: "Headgear", head: "Head", torso: "Torso", skirt: "Skirt", legs: "Legs", accessory: "Accessory" };
 
 // num_sets is null when a rarity lookup failed. `null <= 3` is true in JS, so
@@ -201,61 +210,80 @@ const GEO = {
   accessory: { y: 108, explode: 70 },
 };
 
-function SlotShape({ slot, color, cx = 100, dy = 0 }) {
-  const stroke = "rgba(0,0,0,0.32)";
+function SlotShape({ slot, color, cx = 100, dy = 0, family = "minifig" }) {
+  const stroke = "rgba(0,0,0,0.34)";
   const g = GEO[slot] || GEO.accessory;
   const y = g.y + dy;
+  const doll = family === "minidoll";
+
+  // Hands and neck read as skin; approximating them from the torso colour
+  // looks wrong on printed torsos, so they stay neutral.
+  const skin = "#F6D7B3";
 
   if (slot === "hair")
-    return (
+    return doll ? (
+      // Mini-doll hair is longer and falls past the shoulders.
       <g>
-        <path
-          d={`M ${cx - 21} ${y + 22} q -3 -26 21 -26 q 24 0 21 26 q -6 -9 -21 -9 q -15 0 -21 9 z`}
-          fill={color}
-          stroke={stroke}
-          strokeWidth="1"
-        />
+        <path d={`M ${cx - 19} ${y + 20} q -5 -28 19 -28 q 24 0 19 28 q -5 -10 -19 -10 q -14 0 -19 10 z`} fill={color} stroke={stroke} strokeWidth="1" />
+        <path d={`M ${cx - 20} ${y + 16} q -6 30 2 46 l 9 -3 q -6 -20 -2 -40 z`} fill={color} stroke={stroke} strokeWidth="0.9" />
+        <path d={`M ${cx + 20} ${y + 16} q 6 30 -2 46 l -9 -3 q 6 -20 2 -40 z`} fill={color} stroke={stroke} strokeWidth="0.9" />
+      </g>
+    ) : (
+      <g>
+        <path d={`M ${cx - 21} ${y + 22} q -3 -26 21 -26 q 24 0 21 26 q -6 -9 -21 -9 q -15 0 -21 9 z`} fill={color} stroke={stroke} strokeWidth="1" />
       </g>
     );
 
   if (slot === "head")
-    return (
+    return doll ? (
+      // Narrower, more rounded, with a slim neck.
       <g>
-        <rect x={cx - 5} y={y - 6} width="10" height="6" rx="1.5" fill={color} stroke={stroke} strokeWidth="0.8" />
+        <rect x={cx - 4} y={y - 5} width="8" height="6" rx="1.5" fill={skin} stroke={stroke} strokeWidth="0.7" />
+        <path d={`M ${cx - 12} ${y + 12} q 0 -13 12 -13 q 12 0 12 13 q 0 15 -12 15 q -12 0 -12 -15 z`} fill={color} stroke={stroke} strokeWidth="1" />
+      </g>
+    ) : (
+      <g>
+        <rect x={cx - 5} y={y - 6} width="10" height="6" rx="1.5" fill={skin} stroke={stroke} strokeWidth="0.8" />
         <rect x={cx - 16} y={y} width="32" height="30" rx="7" fill={color} stroke={stroke} strokeWidth="1" />
       </g>
     );
 
   if (slot === "torso")
-    return (
+    return doll ? (
+      // Slim tapered torso, arms held close to the body.
       <g>
-        <path
-          d={`M ${cx - 14} ${y} h 28 l 5 8 v 34 q 0 5 -5 5 h -28 q -5 0 -5 -5 v -34 z`}
-          fill={color}
-          stroke={stroke}
-          strokeWidth="1"
-        />
+        <path d={`M ${cx - 11} ${y + 4} h 22 l 3 12 v 26 q 0 4 -4 4 h -20 q -4 0 -4 -4 v -26 z`} fill={color} stroke={stroke} strokeWidth="1" />
+        <path d={`M ${cx - 13} ${y + 8} q -7 3 -8 20 l 6 2 q 2 -14 5 -16 z`} fill={color} stroke={stroke} strokeWidth="0.9" />
+        <path d={`M ${cx + 13} ${y + 8} q 7 3 8 20 l -6 2 q -2 -14 -5 -16 z`} fill={color} stroke={stroke} strokeWidth="0.9" />
+        <circle cx={cx - 17} cy={y + 32} r="3.4" fill={skin} stroke={stroke} strokeWidth="0.7" />
+        <circle cx={cx + 17} cy={y + 32} r="3.4" fill={skin} stroke={stroke} strokeWidth="0.7" />
+      </g>
+    ) : (
+      <g>
+        <path d={`M ${cx - 14} ${y} h 28 l 5 8 v 34 q 0 5 -5 5 h -28 q -5 0 -5 -5 v -34 z`} fill={color} stroke={stroke} strokeWidth="1" />
         <path d={`M ${cx - 19} ${y + 6} q -11 4 -13 22 l 9 3 q 3 -15 8 -18 z`} fill={color} stroke={stroke} strokeWidth="1" />
         <path d={`M ${cx + 19} ${y + 6} q 11 4 13 22 l -9 3 q -3 -15 -8 -18 z`} fill={color} stroke={stroke} strokeWidth="1" />
-        <circle cx={cx - 26} cy={y + 34} r="4.5" fill="#F6D02F" stroke={stroke} strokeWidth="0.8" />
-        <circle cx={cx + 26} cy={y + 34} r="4.5" fill="#F6D02F" stroke={stroke} strokeWidth="0.8" />
+        <circle cx={cx - 26} cy={y + 34} r="4.5" fill={skin} stroke={stroke} strokeWidth="0.8" />
+        <circle cx={cx + 26} cy={y + 34} r="4.5" fill={skin} stroke={stroke} strokeWidth="0.8" />
       </g>
     );
 
   if (slot === "skirt")
     return (
       <g>
-        <path
-          d={`M ${cx - 15} ${y} h 30 l 9 34 q -24 5 -48 0 z`}
-          fill={color}
-          stroke={stroke}
-          strokeWidth="1"
-        />
+        <path d={`M ${cx - 13} ${y} h 26 l 10 32 q -23 5 -46 0 z`} fill={color} stroke={stroke} strokeWidth="1" />
       </g>
     );
 
   if (slot === "legs")
-    return (
+    return doll ? (
+      // Long, slim, slightly tapered — no separate hip block.
+      <g>
+        <rect x={cx - 12} y={y} width="24" height="9" rx="2.5" fill={color} stroke={stroke} strokeWidth="1" />
+        <path d={`M ${cx - 11} ${y + 9} h 9 l -1 34 h -8 z`} fill={color} stroke={stroke} strokeWidth="0.9" />
+        <path d={`M ${cx + 2} ${y + 9} h 9 l 1 34 h -8 z`} fill={color} stroke={stroke} strokeWidth="0.9" />
+      </g>
+    ) : (
       <g>
         <rect x={cx - 17} y={y} width="34" height="10" rx="2" fill={color} stroke={stroke} strokeWidth="1" />
         <rect x={cx - 17} y={y + 10} width="15" height="30" rx="2" fill={color} stroke={stroke} strokeWidth="1" />
@@ -271,9 +299,6 @@ function SlotShape({ slot, color, cx = 100, dy = 0 }) {
   );
 }
 
-const BODY = new Set(["hair", "head", "torso", "skirt", "legs"]);
-const hasBody = (fig) => (fig?.parts || []).some((p) => BODY.has(p.slot));
-
 function Minifig({ fig, exploded = false, height = 150, showAccessory = true }) {
   // If no part resolved to a body slot, this is a figure family the matcher
   // doesn't know. Show the catalogue photo rather than an empty frame.
@@ -287,6 +312,7 @@ function Minifig({ fig, exploded = false, height = 150, showAccessory = true }) 
       />
     );
   }
+  const family = figFamily(fig);
   const parts = sortSlots(fig.parts).filter((p) => showAccessory || p.slot !== "accessory");
   return (
     <svg viewBox="0 0 200 230" style={{ height, width: "auto", overflow: "visible" }} aria-label={fig.set_name}>
@@ -301,7 +327,7 @@ function Minifig({ fig, exploded = false, height = 150, showAccessory = true }) 
               transition: "transform 520ms cubic-bezier(.2,.7,.2,1)",
             }}
           >
-            <SlotShape slot={p.slot} color={p.color} cx={cx} />
+            <SlotShape slot={p.slot} color={p.color} cx={cx} family={family} />
           </g>
         );
       })}
@@ -369,6 +395,21 @@ function BrickGlyph({ cat, color, size = 40 }) {
 
 /* -------------------------------------------------------------- primitives */
 
+/** Real photo, falling back to the drawn shape if the image 404s or is absent. */
+function PartImage({ src, alt, size = 34, fallback = null }) {
+  const [broken, setBroken] = useState(false);
+  if (!src || broken) return fallback;
+  return (
+    <img
+      src={src}
+      alt={alt || ""}
+      loading="lazy"
+      onError={() => setBroken(true)}
+      style={{ width: size, height: size, objectFit: "contain", display: "block" }}
+    />
+  );
+}
+
 function Stamp({ children, tone = C.muted }) {
   return (
     <span
@@ -429,7 +470,12 @@ function FigureCard({ fig, active, onSelect }) {
       }}
     >
       <div className="h-[150px] flex items-end justify-center w-full">
-        <Minifig fig={fig} exploded={hover && !active} height={148} />
+        {fig.set_img_url && !hover ? (
+          <img src={fig.set_img_url} alt={fig.set_name} loading="lazy"
+               style={{ height: 148, width: "auto", objectFit: "contain" }} />
+        ) : (
+          <Minifig fig={fig} exploded={hover} height={148} />
+        )}
       </div>
       <div className="mt-4 w-full">
         <div style={{ fontFamily: display, fontWeight: 600, fontSize: 13.5, color: C.ink, letterSpacing: "-0.01em" }}>
@@ -465,11 +511,33 @@ function ExplodedDiagram({ fig }) {
   }, [fig.set_num, reduced]);
 
   const parts = sortSlots(fig.parts);
+  const family = figFamily(fig);
+  const [showPhoto, setShowPhoto] = useState(false);
 
   return (
     <div className="flex flex-col md:flex-row gap-6 md:gap-2">
       {/* diagram */}
-      <div className="flex-shrink-0 flex items-center justify-center" style={{ minWidth: 200 }}>
+      <div className="flex-shrink-0 flex flex-col items-center justify-center" style={{ minWidth: 200 }}>
+        {fig.set_img_url && (
+          <div className="mb-2 flex gap-1">
+            {["Diagram", "Photo"].map((label, i) => {
+              const on = (i === 1) === showPhoto;
+              return (
+                <button key={label} onClick={() => setShowPhoto(i === 1)}
+                  style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: "0.07em", textTransform: "uppercase",
+                           padding: "3px 7px", borderRadius: 2, cursor: "pointer",
+                           border: `1px solid ${on ? C.ink : "rgba(0,0,0,0.15)"}`,
+                           background: on ? C.ink : "transparent", color: on ? C.panel : C.muted }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {showPhoto ? (
+          <img src={fig.set_img_url} alt={fig.set_name}
+               style={{ height: 300, width: "auto", objectFit: "contain" }} />
+        ) : (
         <svg viewBox="0 0 210 330" style={{ height: 330, width: 210, overflow: "visible" }}>
           {parts.map((p) => {
             const g = GEO[p.slot] || GEO.accessory;
@@ -493,7 +561,7 @@ function ExplodedDiagram({ fig }) {
                     transition: reduced ? "none" : "transform 620ms cubic-bezier(.16,.8,.24,1)",
                   }}
                 >
-                  <SlotShape slot={p.slot} color={p.color} cx={cx} />
+                  <SlotShape slot={p.slot} color={p.color} cx={cx} family={family} />
                 </g>
                 {/* leader line out to the label rail */}
                 <line
@@ -519,6 +587,7 @@ function ExplodedDiagram({ fig }) {
             );
           })}
         </svg>
+        )}
       </div>
 
       {/* component rail */}
@@ -537,16 +606,18 @@ function ExplodedDiagram({ fig }) {
               background: focus === p.part_num ? "rgba(10,110,168,0.05)" : "transparent",
             }}
           >
-            <span
-              className="flex-shrink-0 mt-0.5"
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 2,
-                background: p.color,
-                border: "1px solid rgba(0,0,0,0.22)",
-              }}
-            />
+            <span className="flex-shrink-0 mt-0.5 flex items-center justify-center"
+                  style={{ width: 34, height: 34, borderRadius: 2, background: "#fff", border: "1px solid rgba(0,0,0,0.10)" }}>
+              <PartImage
+                src={p.img}
+                alt={p.name}
+                size={32}
+                fallback={
+                  <span style={{ width: 16, height: 16, borderRadius: 2, background: p.color,
+                                 border: "1px solid rgba(0,0,0,0.22)", display: "block" }} />
+                }
+              />
+            </span>
             <div className="min-w-0 flex-1">
               <div style={{ fontFamily: display, fontSize: 12.5, fontWeight: 500, color: C.ink, lineHeight: 1.3 }}>
                 {p.name}
@@ -620,8 +691,8 @@ function BrickInventory({ rows: ALL = DEMO_BRICKS }) {
             className="p-3 flex items-center gap-3"
             style={{ background: C.panel, border: `1px solid ${isRare(b.num_sets) ? C.flag : C.panelEdge}`, borderRadius: 3 }}
           >
-            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: 46 }}>
-              <BrickGlyph cat={b.cat} color={b.color} />
+            <div className="flex-shrink-0 flex items-center justify-center" style={{ width: 46, height: 40 }}>
+              <PartImage src={b.img} alt={b.name} size={42} fallback={<BrickGlyph cat={b.cat} color={b.color} />} />
             </div>
             <div className="min-w-0 flex-1">
               <div style={{ fontFamily: display, fontSize: 12.5, fontWeight: 500, color: C.ink, lineHeight: 1.25 }}>{b.name}</div>
