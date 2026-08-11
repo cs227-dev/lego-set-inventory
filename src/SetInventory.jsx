@@ -35,124 +35,6 @@ const mono = "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace";
 
 /* ---------------------------------------------------------------- mock data */
 
-const DEMO_SET = {
-  set_num: "75192-1",
-  name: "Millennium Falcon",
-  year: 2017,
-  theme: "Star Wars / Ultimate Collector Series",
-  num_parts: 7541,
-};
-
-// Shape matches /minifigs/{fig}/parts/ results, plus a `slot` we derive
-// ourselves (see slotOf below) and `num_sets` from the part-colors endpoint.
-const DEMO_MINIFIGS = [
-  {
-    set_num: "fig-001842",
-    set_name: "Han Solo, Classic",
-    parts: [
-      { slot: "hair", part_num: "23186", name: "Minifig Hair, Swept Back", color: "#3A2A1B", num_sets: 44 },
-      { slot: "head", part_num: "3626cpr", name: "Minifig Head, Smirk / Raised Brow", color: "#F6D02F", num_sets: 2 },
-      { slot: "torso", part_num: "973pb2841", name: "Minifig Torso, White Shirt, Black Vest", color: "#F2F2F2", num_sets: 3 },
-      { slot: "legs", part_num: "970c00pb0851", name: "Minifig Legs, Blue Stripe", color: "#4A5A78", num_sets: 5 },
-      { slot: "accessory", part_num: "15391", name: "Blaster, Short", color: "#2B2B2B", num_sets: 128 },
-    ],
-  },
-  {
-    set_num: "fig-001843",
-    set_name: "Chewbacca",
-    parts: [
-      { slot: "head", part_num: "88860", name: "Minifig Head, Wookiee, Molded", color: "#7A4A22", num_sets: 12 },
-      { slot: "torso", part_num: "973pb1789", name: "Minifig Torso, Fur, Bandolier", color: "#7A4A22", num_sets: 12 },
-      { slot: "legs", part_num: "970c00pb0410", name: "Minifig Legs, Fur", color: "#6B3F1D", num_sets: 12 },
-      { slot: "accessory", part_num: "18889", name: "Bowcaster", color: "#4A3121", num_sets: 9 },
-    ],
-  },
-  {
-    set_num: "fig-001844",
-    set_name: "Princess Leia",
-    parts: [
-      { slot: "hair", part_num: "92081", name: "Minifig Hair, Buns", color: "#3A2A1B", num_sets: 7 },
-      { slot: "head", part_num: "3626cpr9", name: "Minifig Head, Determined", color: "#F6D02F", num_sets: 6 },
-      { slot: "torso", part_num: "973pb2842", name: "Minifig Torso, White Robe", color: "#F7F7F2", num_sets: 2 },
-      { slot: "legs", part_num: "970c00pb0852", name: "Minifig Legs, White Robe", color: "#F7F7F2", num_sets: 2 },
-    ],
-  },
-  {
-    set_num: "fig-001845",
-    set_name: "C-3PO",
-    parts: [
-      { slot: "head", part_num: "30366pb01", name: "Minifig Head, Droid, Molded", color: "#D6A825", num_sets: 18 },
-      { slot: "torso", part_num: "973pb1180", name: "Minifig Torso, Droid Wiring", color: "#D6A825", num_sets: 18 },
-      { slot: "legs", part_num: "970c00pb0288", name: "Minifig Legs, Droid", color: "#D6A825", num_sets: 18 },
-    ],
-  },
-  {
-    set_num: "fig-001846",
-    set_name: "Rey",
-    parts: [
-      { slot: "hair", part_num: "36037", name: "Minifig Hair, Three Buns", color: "#5A3A20", num_sets: 3 },
-      { slot: "head", part_num: "3626cpr14", name: "Minifig Head, Freckles", color: "#F6D02F", num_sets: 4 },
-      { slot: "torso", part_num: "973pb2843", name: "Minifig Torso, Wrapped Tunic", color: "#C9B18B", num_sets: 3 },
-      { slot: "legs", part_num: "970c00pb0853", name: "Minifig Legs, Tan Wrap", color: "#B49A72", num_sets: 3 },
-      { slot: "accessory", part_num: "18694", name: "Staff", color: "#5A4632", num_sets: 21 },
-    ],
-  },
-  {
-    set_num: "fig-001847",
-    set_name: "Finn",
-    parts: [
-      { slot: "head", part_num: "3626cpr21", name: "Minifig Head, Wide Grin", color: "#5C3A22", num_sets: 8 },
-      { slot: "torso", part_num: "973pb2844", name: "Minifig Torso, Leather Jacket", color: "#4B3524", num_sets: 4 },
-      { slot: "legs", part_num: "970c00pb0854", name: "Minifig Legs, Dark Tan", color: "#8A7351", num_sets: 6 },
-    ],
-  },
-  {
-    set_num: "fig-001848",
-    set_name: "Old Han Solo",
-    parts: [
-      { slot: "hair", part_num: "98371", name: "Minifig Hair, Grey Swept", color: "#9A9A96", num_sets: 2 },
-      { slot: "head", part_num: "3626cpr30", name: "Minifig Head, Lined, Beard", color: "#F6D02F", num_sets: 1 },
-      { slot: "torso", part_num: "973pb2845", name: "Minifig Torso, Heavy Coat", color: "#3C3B39", num_sets: 1 },
-      { slot: "legs", part_num: "970c00pb0855", name: "Minifig Legs, Dark Blue", color: "#39445C", num_sets: 4 },
-    ],
-  },
-  {
-    set_num: "fig-001849",
-    set_name: "Mynock",
-    parts: [
-      { slot: "head", part_num: "37341", name: "Mynock Body, Moulded", color: "#4A4A4A", num_sets: 1 },
-    ],
-  },
-];
-
-// Shape matches /sets/{set}/parts/ results.
-const DEMO_BRICKS = [
-  { part_num: "3001", name: "Brick 2 x 4", cat: "brick", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 412, num_sets: 3140 },
-  { part_num: "3020", name: "Plate 2 x 4", cat: "plate", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 288, num_sets: 2870 },
-  { part_num: "3068b", name: "Tile 2 x 2", cat: "tile", color: "#6C706E", color_name: "Dark Bluish Gray", quantity: 205, num_sets: 2410 },
-  { part_num: "3004", name: "Brick 1 x 2", cat: "brick", color: "#6C706E", color_name: "Dark Bluish Gray", quantity: 190, num_sets: 3020 },
-  { part_num: "3040", name: "Slope 45° 2 x 1", cat: "slope", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 144, num_sets: 1980 },
-  { part_num: "4073", name: "Plate Round 1 x 1", cat: "round", color: "#F2F2F2", color_name: "White", quantity: 132, num_sets: 2240 },
-  { part_num: "32523", name: "Technic Beam 3", cat: "technic", color: "#6C706E", color_name: "Dark Bluish Gray", quantity: 96, num_sets: 890 },
-  { part_num: "43722", name: "Wedge Plate 3 x 2 Right", cat: "slope", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 88, num_sets: 620 },
-  { part_num: "2431", name: "Tile 1 x 4", cat: "tile", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 76, num_sets: 1740 },
-  { part_num: "30414", name: "Brick Modified 1 x 4, Studs Side", cat: "brick", color: "#6C706E", color_name: "Dark Bluish Gray", quantity: 64, num_sets: 540 },
-  { part_num: "98138", name: "Tile Round 1 x 1", cat: "round", color: "#3D6BB0", color_name: "Trans-Blue", quantity: 48, num_sets: 980 },
-  { part_num: "64644", name: "Dish 8 x 8 Inverted, Radar", cat: "round", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 2, num_sets: 3 },
-  { part_num: "22385", name: "Tile Wedge 2 x 4 Left", cat: "slope", color: "#F2F2F2", color_name: "White", quantity: 34, num_sets: 410 },
-  { part_num: "75192p01", name: "Cockpit Canopy, Printed", cat: "other", color: "#B8CBD9", color_name: "Trans-Light Blue", quantity: 1, num_sets: 1 },
-  { part_num: "44728", name: "Bracket 1 x 2 - 2 x 2", cat: "other", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 58, num_sets: 1120 },
-  { part_num: "6141", name: "Plate Round 1 x 1 Open Stud", cat: "round", color: "#C2371B", color_name: "Red", quantity: 26, num_sets: 1890 },
-  { part_num: "60481", name: "Slope 65° 2 x 1 x 2", cat: "slope", color: "#6C706E", color_name: "Dark Bluish Gray", quantity: 42, num_sets: 760 },
-  { part_num: "41770", name: "Wedge Plate 4 x 2 Left", cat: "slope", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 40, num_sets: 690 },
-  { part_num: "2412b", name: "Tile Grille 1 x 2", cat: "tile", color: "#6C706E", color_name: "Dark Bluish Gray", quantity: 38, num_sets: 1450 },
-  { part_num: "87580", name: "Plate 2 x 2 Center Stud", cat: "plate", color: "#F2F2F2", color_name: "White", quantity: 30, num_sets: 880 },
-  { part_num: "18674", name: "Plate Round 2 x 2 Center Stud", cat: "round", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 22, num_sets: 640 },
-  { part_num: "4740", name: "Dish 2 x 2 Inverted", cat: "round", color: "#6C706E", color_name: "Dark Bluish Gray", quantity: 18, num_sets: 1290 },
-  { part_num: "30602", name: "Slope Curved 2 x 2 Lip", cat: "slope", color: "#F2F2F2", color_name: "White", quantity: 16, num_sets: 720 },
-  { part_num: "27925", name: "Tile Round Corner 2 x 2 Macaroni", cat: "tile", color: "#9BA19D", color_name: "Light Bluish Gray", quantity: 12, num_sets: 380 },
-];
-
 /* ------------------------------------------------------------------ helpers */
 
 // In the real API, derive the slot from part_cat_id or the part name prefix
@@ -591,9 +473,9 @@ function ExplodedDiagram({ fig }) {
   const [showPhoto, setShowPhoto] = useState(Boolean(fig.set_img_url));
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 md:gap-2">
+    <div className="flex flex-col xl:flex-row gap-5 xl:gap-3">
       {/* diagram */}
-      <div className="flex-shrink-0 flex flex-col items-center justify-center" style={{ minWidth: 200 }}>
+      <div className="flex-shrink-0 flex flex-col items-center justify-center self-center" style={{ minWidth: 200 }}>
         {fig.set_img_url && (
           <div className="mb-2 flex gap-1">
             {["Diagram", "Photo"].map((label, i) => {
@@ -715,7 +597,7 @@ function ExplodedDiagram({ fig }) {
 
 const CATS = ["all", "brick", "plate", "tile", "slope", "round", "technic", "other"];
 
-function BrickInventory({ rows: ALL = DEMO_BRICKS }) {
+function BrickInventory({ rows: ALL = [] }) {
   const [cat, setCat] = useState("all");
   const [sort, setSort] = useState("quantity");
   const [rareOnly, setRareOnly] = useState(false);
@@ -878,9 +760,9 @@ function SetOverview({ setInfo, minifigs, bricks, creatures, rareTotal, pending 
 /* --------------------------------------------------------------- shell */
 
 export default function SetInventory({
-  setInfo = DEMO_SET,
-  minifigs = DEMO_MINIFIGS,
-  bricks = DEMO_BRICKS,
+  setInfo = null,
+  minifigs = [],
+  bricks = [],
   pending = false,
   onOpenSet = null,
   openSignal = 0,
@@ -926,6 +808,20 @@ export default function SetInventory({
         {/* header */}
         <header className="mb-7">
           <Stamp tone={C.azure}>SET INVENTORY</Stamp>
+          {!setInfo ? (
+            <>
+              <h1 style={{ fontFamily: display, fontWeight: 800, fontSize: "clamp(28px, 5vw, 44px)",
+                           letterSpacing: "-0.03em", lineHeight: 1, margin: "8px 0 0" }}>
+                Explore the LEGO catalogue
+              </h1>
+              <div className="mt-3">
+                <Stamp tone={C.inkSoft}>
+                  Pick a set from Browse, or type a set number above, to see its parts and characters.
+                </Stamp>
+              </div>
+            </>
+          ) : (
+          <>
           <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <h1
               style={{
@@ -952,6 +848,8 @@ export default function SetInventory({
               </span>
             )}
           </div>
+          </>
+          )}
         </header>
 
         {/* tabs */}
@@ -961,19 +859,32 @@ export default function SetInventory({
               Browse
             </button>
           )}
-          <button style={tabStyle(tab === "set")} onClick={() => setTab("set")}>
+          <button style={tabStyle(tab === "set")} onClick={() => setTab("set")} disabled={!setInfo}
+                  title={setInfo ? "" : "Load a set first"}>
             Set
           </button>
           <button style={tabStyle(tab === "characters")} onClick={() => setTab("characters")}>
-            Characters · {pending && roster.length === 0 ? "…" : roster.length}
+            Characters{setInfo ? ` · ${pending && roster.length === 0 ? "…" : roster.length}` : ""}
           </button>
           <button style={tabStyle(tab === "bricks")} onClick={() => setTab("bricks")}>
-            Bricks · {pending ? "…" : plainBricks.length}
+            Bricks{setInfo ? ` · ${pending ? "…" : plainBricks.length}` : ""}
           </button>
         </nav>
 
         {tab === "browse" ? (
           <Browse onOpenSet={onOpenSet} activeSetNum={setInfo?.set_num} />
+        ) : !setInfo ? (
+          <div className="py-20 text-center">
+            <Stamp>NO SET LOADED</Stamp>
+            <div className="mt-3">
+              <button onClick={() => setTab("browse")}
+                style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.07em", textTransform: "uppercase",
+                         padding: "7px 12px", borderRadius: 2, cursor: "pointer", border: "none",
+                         background: C.ink, color: C.panel }}>
+                Browse the catalogue
+              </button>
+            </div>
+          </div>
         ) : tab === "set" ? (
           <SetOverview
             setInfo={setInfo}
@@ -988,7 +899,7 @@ export default function SetInventory({
             <div className="py-20 text-center"><Stamp>{pending ? "LOADING CHARACTERS" : "NO CHARACTERS IN THIS SET"}</Stamp></div>
           ) : (
             <div className="flex flex-col lg:flex-row gap-6">
-              <div className="lg:w-[58%]">
+              <div className="lg:w-[54%]">
                 <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
                   {roster.map((f) => (
                     <FigureCard key={f.set_num} fig={f} active={selected?.set_num === f.set_num} onSelect={setSelected} />
@@ -996,7 +907,7 @@ export default function SetInventory({
                 </div>
               </div>
 
-              <div className="lg:w-[42%]">
+              <div className="lg:w-[46%]">
                 <div
                   className="p-5 lg:sticky lg:top-5"
                   style={{ background: C.panel, border: `1px solid ${C.panelEdge}`, borderRadius: 3, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}

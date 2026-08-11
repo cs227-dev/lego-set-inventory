@@ -62,6 +62,12 @@ export default function Browse({ onOpenSet, activeSetNum }) {
     return () => { live = false; };
   }, []);
 
+  // Debounce typing into a set search so results follow along as you type.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(query.trim()), 350);
+    return () => clearTimeout(id);
+  }, [query]);
+
   // Reset paging whenever the theme, decade or search changes.
   useEffect(() => { setPage(1); }, [current?.id, decade, search]);
 
@@ -90,10 +96,10 @@ export default function Browse({ onOpenSet, activeSetNum }) {
 
   const children = current ? current.children : tree?.roots || [];
   const shownChildren = useMemo(() => {
-    if (!query.trim() || current) return children;
     const q = query.trim().toLowerCase();
+    if (!q) return children;
     return children.filter((c) => c.name.toLowerCase().includes(q));
-  }, [children, query, current]);
+  }, [children, query]);
 
   const chip = (on) => ({
     fontFamily: mono, fontSize: 10, letterSpacing: "0.07em", textTransform: "uppercase",
@@ -143,12 +149,13 @@ export default function Browse({ onOpenSet, activeSetNum }) {
           <button key={d[0]} onClick={() => setDecade(i)} style={chip(decade === i)}>{d[0]}</button>
         ))}
         <span className="flex-1" />
+        {query && (
+          <button onClick={() => setQuery("")} style={chip(false)} title="Clear">Clear</button>
+        )}
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && setSearch(query)}
-          onBlur={() => current && setSearch(query)}
-          placeholder={current ? `Search in ${current.name}` : "Filter themes"}
+          placeholder={current ? `Search ${current.name}` : "Filter themes"}
           className="px-2.5 py-1.5"
           style={{ fontFamily: mono, fontSize: 12, background: "transparent", border: `1px solid ${C.panelEdge}`,
                    borderRadius: 2, color: C.ink, outline: "none", minWidth: 160 }}
@@ -188,7 +195,11 @@ export default function Browse({ onOpenSet, activeSetNum }) {
       {current && (
         <div>
           <div className="pb-2 mb-2.5 flex items-center justify-between gap-2" style={{ borderBottom: `1px solid ${C.panelEdge}` }}>
-            <Stamp>SETS IN {current.name.toUpperCase()} · {loading && page === 1 ? "…" : count}</Stamp>
+            <Stamp>
+              SETS IN {current.name.toUpperCase()} · {loading && page === 1 ? "…" : count}
+              {decade !== 0 ? ` · ${DECADES[decade][0]}` : ""}
+              {search ? ` · “${search}”` : ""}
+            </Stamp>
             {children.length > 0 && count === 0 && !loading && (
               <Stamp tone={C.azure}>PICK A SUBTHEME ABOVE</Stamp>
             )}
@@ -204,7 +215,13 @@ export default function Browse({ onOpenSet, activeSetNum }) {
             <div className="py-14 text-center"><Stamp>LOADING SETS</Stamp></div>
           ) : sets.length === 0 && !setsError ? (
             <div className="py-14 text-center">
-              <Stamp>{children.length ? "NO SETS FILED DIRECTLY UNDER THIS THEME" : "NO SETS MATCH THESE FILTERS"}</Stamp>
+              <Stamp>
+                {decade !== 0 || search
+                  ? "NO SETS MATCH THESE FILTERS — TRY ALL YEARS"
+                  : children.length
+                  ? "NO SETS FILED DIRECTLY UNDER THIS THEME"
+                  : "NO SETS IN THIS THEME"}
+              </Stamp>
             </div>
           ) : (
             <>

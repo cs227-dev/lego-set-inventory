@@ -52,7 +52,7 @@ export default function App() {
               className="px-3 py-1.5"
               style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.07em", textTransform: "uppercase", background: "transparent", color: C.muted, border: `1px solid ${C.edge}`, borderRadius: 2, cursor: "pointer" }}
             >
-              Back to demo
+              Clear
             </button>
           )}
         </div>
@@ -76,17 +76,6 @@ export default function App() {
                 LOADING {setNum} — {stage === "idle" ? "set details" : stage === "set" ? "characters" : "brick inventory"}…
               </span>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* demo notice */}
-      {!live && (
-        <div className="max-w-6xl mx-auto px-5 pt-4">
-          <div className="p-3" style={{ background: C.panel, border: `1px solid ${C.edge}`, borderRadius: 3 }}>
-            <span style={{ fontFamily: mono, fontSize: 11, color: C.muted, letterSpacing: "0.05em" }}>
-              Browse the theme catalogue below, or enter a set number above. Set, Characters and Bricks show sample data until a set is loaded.
-            </span>
           </div>
         </div>
       )}
