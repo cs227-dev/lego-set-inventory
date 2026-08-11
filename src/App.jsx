@@ -9,6 +9,7 @@ const display = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
 export default function App() {
   const [query, setQuery] = useState("");
   const [setNum, setSetNum] = useState(null); // null = show the demo set
+  const [openSignal, setOpenSignal] = useState(0); // bumped whenever a set is opened
   const { set, minifigs, bricks, stage, error, retry } = useSetInventory(setNum);
 
   const live = setNum !== null;
@@ -18,6 +19,11 @@ export default function App() {
     const t = query.trim();
     if (t) setSetNum(normalize(t));
   };
+
+  // Browse hands back a canonical set_num already, so no normalising needed.
+  // The signal is explicit rather than derived from the set number changing,
+  // because re-opening the set that is already loaded must still navigate.
+  const openSet = (num) => { setQuery(num); setSetNum(num); setOpenSignal((n) => n + 1); };
 
   return (
     <div style={{ background: C.backdrop, minHeight: "100%" }}>
@@ -79,7 +85,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-5 pt-4">
           <div className="p-3" style={{ background: C.panel, border: `1px solid ${C.edge}`, borderRadius: 3 }}>
             <span style={{ fontFamily: mono, fontSize: 11, color: C.muted, letterSpacing: "0.05em" }}>
-              SHOWING SAMPLE DATA — enter a set number above to load a real inventory.
+              Browse the theme catalogue below, or enter a set number above. Set, Characters and Bricks show sample data until a set is loaded.
             </span>
           </div>
         </div>
@@ -91,10 +97,23 @@ export default function App() {
         set that had already arrived — the screen went blank on a first search
         and worked on the second only because the edge cache served it.
       */}
+      {/*
+        Always render the shell. A failed load used to unmount everything,
+        which took Browse with it and left no way forward but "Back to demo".
+        The error banner above says what went wrong; the catalogue stays usable.
+      */}
       {live && set ? (
-        <SetInventory setInfo={set} minifigs={minifigs} bricks={bricks} pending={stage !== "done"} />
+        <SetInventory
+          setInfo={set}
+          minifigs={minifigs}
+          bricks={bricks}
+          pending={stage !== "done"}
+          onOpenSet={openSet}
+          openSignal={openSignal}
+          browsable
+        />
       ) : (
-        !live && !error && <SetInventory />
+        <SetInventory onOpenSet={openSet} openSignal={openSignal} browsable />
       )}
     </div>
   );

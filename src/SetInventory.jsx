@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import Browse from "./Browse.jsx";
 
 /* ============================================================================
    SET INVENTORY — drill-down prototype
@@ -876,8 +877,22 @@ function SetOverview({ setInfo, minifigs, bricks, creatures, rareTotal, pending 
 
 /* --------------------------------------------------------------- shell */
 
-export default function SetInventory({ setInfo = DEMO_SET, minifigs = DEMO_MINIFIGS, bricks = DEMO_BRICKS, pending = false }) {
-  const [tab, setTab] = useState("set");
+export default function SetInventory({
+  setInfo = DEMO_SET,
+  minifigs = DEMO_MINIFIGS,
+  bricks = DEMO_BRICKS,
+  pending = false,
+  onOpenSet = null,
+  openSignal = 0,
+  browsable = false,
+}) {
+  const [tab, setTab] = useState(browsable ? "browse" : "set");
+
+  // Opening a set from Browse should land on that set, not leave the user
+  // staring at the theme list wondering whether the click registered.
+  useEffect(() => {
+    if (openSignal > 0) setTab("set");
+  }, [openSignal]);
   const [selected, setSelected] = useState(null);
 
   const creatures = useMemo(() => bricks.filter(isCreature).map(creatureAsFigure), [bricks]);
@@ -941,6 +956,11 @@ export default function SetInventory({ setInfo = DEMO_SET, minifigs = DEMO_MINIF
 
         {/* tabs */}
         <nav className="mb-6" style={{ borderBottom: `1px solid ${C.panelEdge}` }}>
+          {browsable && (
+            <button style={tabStyle(tab === "browse")} onClick={() => setTab("browse")}>
+              Browse
+            </button>
+          )}
           <button style={tabStyle(tab === "set")} onClick={() => setTab("set")}>
             Set
           </button>
@@ -952,7 +972,9 @@ export default function SetInventory({ setInfo = DEMO_SET, minifigs = DEMO_MINIF
           </button>
         </nav>
 
-        {tab === "set" ? (
+        {tab === "browse" ? (
+          <Browse onOpenSet={onOpenSet} activeSetNum={setInfo?.set_num} />
+        ) : tab === "set" ? (
           <SetOverview
             setInfo={setInfo}
             minifigs={minifigs}

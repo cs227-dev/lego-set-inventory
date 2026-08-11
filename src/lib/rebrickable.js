@@ -297,6 +297,61 @@ export async function fetchInventory(setNum) {
   return { set, minifigs, bricks };
 }
 
+/* --------------------------------------------------------------- themes */
+
+let themeCache = null;
+
+/**
+ * The full theme list is a few hundred rows and fits in one request, so fetch
+ * it once and build the parent/child tree client-side. Each theme carries a
+ * parent_id; the roots are the ones with none.
+ */
+export async function fetchThemes() {
+  if (themeCache) return themeCache;
+  const rows = await getAll("themes/", {}, 5);
+
+  const byId = new Map(rows.map((t) => [t.id, { ...t, children: [] }]));
+  const roots = [];
+  for (const t of byId.values()) {
+    const parent = t.parent_id != null ? byId.get(t.parent_id) : null;
+    if (parent) parent.children.push(t);
+    else roots.push(t);
+  }
+  const sortTree = (list) => {
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    list.forEach((t) => sortTree(t.children));
+    return list;
+  };
+  themeCache = { roots: sortTree(roots), byId };
+  return themeCache;
+}
+
+/**
+ * Sets are attached to the most specific theme, not to its ancestors — asking
+ * for "Star Wars" returns only sets filed directly there, not everything in its
+ * subthemes. The UI leads with subthemes for that reason.
+ */
+export async function fetchThemeSets(themeId, { minYear, maxYear, search, page = 1, pageSize = 60 } = {}) {
+  const params = { theme_id: themeId, page, page_size: pageSize, ordering: "-year,name" };
+  if (minYear) params.min_year = minYear;
+  if (maxYear) params.max_year = maxYear;
+  if (search) params.search = search;
+
+  const data = await get("sets/", params);
+  return {
+    count: data.count ?? 0,
+    hasMore: Boolean(data.next),
+    results: (data.results || []).map((s) => ({
+      set_num: s.set_num,
+      name: s.name,
+      year: s.year,
+      num_parts: s.num_parts,
+      set_img_url: s.set_img_url,
+      theme_id: s.theme_id,
+    })),
+  };
+}
+
 export async function searchSets(query) {
   const data = await get("sets/", { search: query, page_size: 20 });
   return (data.results || []).filter((s) => s.num_parts > 0);

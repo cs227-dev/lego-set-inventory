@@ -28,12 +28,14 @@ const ALLOWED = [
   /^parts\/[\w.-]+\/colors\/$/,
   /^parts\/[\w.-]+\/colors\/\d+\/$/,
   /^part_categories\/$/,
+  /^themes\/$/,
   /^themes\/\d+\/$/,
   /^colors\/$/,
   /^sets\/$/,
 ];
 
-const FORWARD = ["page", "page_size", "search", "inc_part_details", "inc_minifig_parts", "inc_color_details", "ordering", "in_set_num"];
+const FORWARD = ["page", "page_size", "search", "inc_part_details", "inc_minifig_parts", "inc_color_details",
+                 "ordering", "in_set_num", "theme_id", "min_year", "max_year", "min_parts", "max_parts"];
 
 const json = (body, status) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });

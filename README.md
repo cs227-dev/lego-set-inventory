@@ -10,6 +10,7 @@ through a serverless function so the API key never reaches the browser.
 
 ```
 src/App.jsx              search bar, demo/live switching, error states
+src/Browse.jsx           theme hierarchy, year filters, set grid
 src/SetInventory.jsx     the UI — figure roster, exploded diagram, brick grid
 src/lib/rebrickable.js   API client: pagination, slot derivation, rarity
 src/lib/useSetInventory.js  React hook, staged loading
@@ -46,6 +47,11 @@ Create `.env.local` with `REBRICKABLE_KEY=your_key_here` for local runs. It's
 gitignored — don't commit it.
 
 ## Notes
+
+**Browsing.** Themes are hierarchical and sets are filed against the most
+specific theme, not its ancestors — so a parent like Star Wars often has no sets
+of its own and the subthemes hold them all. The Browse tab leads with subthemes
+for that reason. The full theme list is fetched once and cached.
 
 **Set numbers need a variant suffix.** `75192` is normalized to `75192-1`
 automatically.
