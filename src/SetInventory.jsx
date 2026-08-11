@@ -259,7 +259,36 @@ const CREATURE_RE = new RegExp(
   "whale|seal|walrus|otter|bee|snail|worm|creature|beast)\\b",
   "i"
 );
-const isCreature = (part) => CREATURE_RE.test(part?.name || "");
+
+/**
+ * Anatomy words. A name whose leading phrase ends in one of these describes a
+ * component — "Dinosaur Tail", "Animal Body Part", "Horse Barding" — not a
+ * creature you could stand on a baseplate. Only the leading phrase is checked,
+ * so "Bird, Parrot with Wings Folded" stays a bird: its wings are described
+ * after the comma, as a property of a whole animal.
+ */
+const CREATURE_PART_RE = new RegExp(
+  "\\b(tails?|wings?|legs?|arms?|heads?|horns?|jaws?|fins?|ears?|eyes?|tooth|teeth|tongues?|" +
+  "necks?|torsos?|hips?|claws?|antennae?|bodies|body|bardings?|saddles?|bridles?|harnesss?|" +
+  "shells?|sections?|halves|half|parts?|pieces?|upper|lower|base|attachments?|accessor(y|ies)|" +
+  "patterns?|prints?)\\b\\s*$",
+  "i"
+);
+
+/**
+ * The head noun being named: everything before the first comma or bracket, then
+ * before any preposition. "Horse with Moveable Legs" is a horse; "Dinosaur Tail"
+ * is a tail. Without the preposition step, any creature described by its limbs
+ * would be mistaken for a limb.
+ */
+const leadingPhrase = (name = "") =>
+  name.split(/\s*[,([]/)[0].split(/\s+(?:with|and|for|on|in|w\/)\s+/i)[0].trim();
+
+const isCreature = (part) => {
+  const name = part?.name || "";
+  if (!CREATURE_RE.test(name)) return false;
+  return !CREATURE_PART_RE.test(leadingPhrase(name));
+};
 
 /** Wrap a creature part so it can be rendered by the same roster card. */
 const creatureAsFigure = (part) => ({
@@ -829,6 +858,7 @@ export default function SetInventory({
   onOpenSet = null,
   openSignal = 0,
   searchState = null,
+  onClearSearch = null,
   browsable = false,
 }) {
   const [tab, setTab] = useState(browsable ? "browse" : "set");
@@ -923,7 +953,10 @@ export default function SetInventory({
         {/* tabs */}
         <nav className="mb-6" style={{ borderBottom: `1px solid ${C.panelEdge}` }}>
           {browsable && (
-            <button style={tabStyle(tab === "browse")} onClick={() => setTab("browse")}>
+            <button
+              style={tabStyle(tab === "browse")}
+              onClick={() => { setTab("browse"); if (onClearSearch) onClearSearch(); }}
+            >
               Browse
             </button>
           )}
@@ -958,7 +991,7 @@ export default function SetInventory({
           <div className="py-20 text-center">
             <Stamp>NO SET LOADED</Stamp>
             <div className="mt-3">
-              <button onClick={() => setTab("browse")}
+              <button onClick={() => { setTab("browse"); if (onClearSearch) onClearSearch(); }}
                 style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.07em", textTransform: "uppercase",
                          padding: "7px 12px", borderRadius: 2, cursor: "pointer", border: "none",
                          background: C.ink, color: C.panel }}>

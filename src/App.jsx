@@ -35,6 +35,14 @@ export default function App() {
   // because re-opening the set that is already loaded must still navigate.
   const openSet = (num) => { setMode("number"); setQuery(num); setSetNum(num); setOpenSignal((n) => n + 1); };
 
+  // Moving to Browse means the previous search is over: drop the results tab
+  // and empty the box so a stale term isn't sitting there.
+  const clearSearch = () => {
+    if (!searchState && !query) return;
+    setSearchState(null);
+    if (mode !== "number") setQuery("");
+  };
+
   return (
     <div style={{ background: C.backdrop, minHeight: "100%" }}>
       {/* search bar */}
@@ -121,10 +129,11 @@ export default function App() {
           onOpenSet={openSet}
           openSignal={openSignal}
           searchState={searchState}
+          onClearSearch={clearSearch}
           browsable
         />
       ) : (
-        <SetInventory onOpenSet={openSet} openSignal={openSignal} searchState={searchState} browsable />
+        <SetInventory onOpenSet={openSet} openSignal={openSignal} searchState={searchState} onClearSearch={clearSearch} browsable />
       )}
     </div>
   );

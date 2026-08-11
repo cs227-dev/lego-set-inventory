@@ -58,6 +58,14 @@ for that reason. The full theme list is fetched once and cached.
 Set name and Character search the whole catalogue; character results expand to
 show every set that figure appears in, fetched only when expanded.
 
+**Characters vs parts.** Animals appear in the roster only when the name
+describes a whole creature. The head noun decides it: "Horse with Moveable Legs"
+is a horse, "Dinosaur Tail" is a tail. Bit parts stay in the Bricks tab.
+
+**Grouped results.** Character search groups variants under the base name, since
+Rebrickable catalogues every printing separately and a common character
+otherwise returns dozens of near-identical rows.
+
 **Rare part navigation.** A part in 2–3 sets shows a link to the others, so a
 rare element becomes a route to related sets. Unique parts (1 set) have nowhere
 to go and show no link.
