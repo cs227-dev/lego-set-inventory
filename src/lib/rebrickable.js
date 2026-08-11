@@ -352,6 +352,59 @@ export async function fetchThemeSets(themeId, { minYear, maxYear, search, page =
   };
 }
 
+const asSetCard = (s) => ({
+  set_num: s.set_num,
+  name: s.name,
+  year: s.year,
+  num_parts: s.num_parts,
+  set_img_url: s.set_img_url,
+  theme_id: s.theme_id,
+});
+
+/** Search the whole catalogue by set name. */
+export async function searchSetsByName(query, { page = 1, pageSize = 60 } = {}) {
+  const data = await get("sets/", { search: query, page, page_size: pageSize, ordering: "-year,name" });
+  return {
+    count: data.count ?? 0,
+    hasMore: Boolean(data.next),
+    results: (data.results || []).map(asSetCard),
+  };
+}
+
+/**
+ * Search minifigs by name. Rebrickable calls a minifig's identifier `set_num`
+ * even though it looks like fig-001234 — that is the field to pass onward.
+ */
+export async function searchMinifigs(query, { page = 1, pageSize = 40 } = {}) {
+  const data = await get("minifigs/", { search: query, page, page_size: pageSize });
+  return {
+    count: data.count ?? 0,
+    hasMore: Boolean(data.next),
+    results: (data.results || []).map((f) => ({
+      fig_num: f.set_num,
+      name: f.set_name,
+      num_parts: f.num_parts,
+      img: f.set_img_url,
+    })),
+  };
+}
+
+/** Which sets a given minifig appears in. */
+export async function fetchMinifigSets(figNum) {
+  const rows = await getAll(`minifigs/${encodeURIComponent(figNum)}/sets/`, {}, 3);
+  return rows.map(asSetCard);
+}
+
+/**
+ * Which sets contain a part in a specific colour. This is the navigation behind
+ * a rare-element badge: a part in 2 or 3 sets is interesting precisely because
+ * you can go and look at the others.
+ */
+export async function fetchPartColorSets(partNum, colorId) {
+  const rows = await getAll(`parts/${encodeURIComponent(partNum)}/colors/${colorId}/sets/`, {}, 3);
+  return rows.map(asSetCard);
+}
+
 export async function searchSets(query) {
   const data = await get("sets/", { search: query, page_size: 20 });
   return (data.results || []).filter((s) => s.num_parts > 0);

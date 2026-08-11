@@ -8,6 +8,8 @@ const display = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
 
 export default function App() {
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState("number"); // number | set | character
+  const [searchState, setSearchState] = useState(null);
   const [setNum, setSetNum] = useState(null); // null = show the demo set
   const [openSignal, setOpenSignal] = useState(0); // bumped whenever a set is opened
   const { set, minifigs, bricks, stage, error, retry } = useSetInventory(setNum);
@@ -17,25 +19,44 @@ export default function App() {
 
   const load = () => {
     const t = query.trim();
-    if (t) setSetNum(normalize(t));
+    if (!t) return;
+    if (mode === "number") {
+      setSearchState(null);
+      setSetNum(normalize(t));
+      setOpenSignal((n) => n + 1);
+    } else {
+      // Name searches don't load a set — they populate the Search tab.
+      setSearchState({ mode, query: t, nonce: Date.now() });
+    }
   };
 
   // Browse hands back a canonical set_num already, so no normalising needed.
   // The signal is explicit rather than derived from the set number changing,
   // because re-opening the set that is already loaded must still navigate.
-  const openSet = (num) => { setQuery(num); setSetNum(num); setOpenSignal((n) => n + 1); };
+  const openSet = (num) => { setMode("number"); setQuery(num); setSetNum(num); setOpenSignal((n) => n + 1); };
 
   return (
     <div style={{ background: C.backdrop, minHeight: "100%" }}>
       {/* search bar */}
       <div style={{ background: C.panel, borderBottom: `1px solid ${C.edge}` }}>
         <div className="max-w-6xl mx-auto px-5 py-3 flex flex-wrap items-center gap-2">
-          <span style={{ fontFamily: mono, fontSize: 10.5, letterSpacing: "0.08em", color: C.azure }}>SET NUMBER</span>
+          {[["number", "Set number"], ["set", "Set name"], ["character", "Character"]].map(([m, label]) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase",
+                       padding: "5px 8px", borderRadius: 2, cursor: "pointer",
+                       border: `1px solid ${mode === m ? C.ink : "rgba(0,0,0,0.15)"}`,
+                       background: mode === m ? C.ink : "transparent", color: mode === m ? C.panel : C.muted }}
+            >
+              {label}
+            </button>
+          ))}
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && load()}
-            placeholder="75192-1"
+            placeholder={mode === "number" ? "75192-1" : mode === "set" ? "millennium falcon" : "chewbacca"}
             className="px-2.5 py-1.5 flex-1 min-w-[140px]"
             style={{ fontFamily: mono, fontSize: 13, background: "transparent", border: `1px solid ${C.edge}`, borderRadius: 2, color: C.ink, outline: "none" }}
           />
@@ -44,11 +65,11 @@ export default function App() {
             className="px-3 py-1.5"
             style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.07em", textTransform: "uppercase", background: C.ink, color: C.panel, border: "none", borderRadius: 2, cursor: "pointer" }}
           >
-            Load
+            {mode === "number" ? "Load" : "Search"}
           </button>
-          {live && (
+          {(live || searchState) && (
             <button
-              onClick={() => { setSetNum(null); setQuery(""); }}
+              onClick={() => { setSetNum(null); setQuery(""); setSearchState(null); }}
               className="px-3 py-1.5"
               style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.07em", textTransform: "uppercase", background: "transparent", color: C.muted, border: `1px solid ${C.edge}`, borderRadius: 2, cursor: "pointer" }}
             >
@@ -99,10 +120,11 @@ export default function App() {
           pending={stage !== "done"}
           onOpenSet={openSet}
           openSignal={openSignal}
+          searchState={searchState}
           browsable
         />
       ) : (
-        <SetInventory onOpenSet={openSet} openSignal={openSignal} browsable />
+        <SetInventory onOpenSet={openSet} openSignal={openSignal} searchState={searchState} browsable />
       )}
     </div>
   );

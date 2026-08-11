@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { fetchThemes, fetchThemeSets } from "./lib/rebrickable.js";
 
-const C = {
+export const C = {
   backdrop: "#E4E1DA",
   panel: "#FAF9F6",
   panelEdge: "#D3CFC6",
@@ -11,10 +11,10 @@ const C = {
   azure: "#0A6EA8",
   flag: "#C2371B",
 };
-const display = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
-const mono = "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace";
+export const display = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
+export const mono = "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace";
 
-const Stamp = ({ children, tone = C.muted }) => (
+export const Stamp = ({ children, tone = C.muted }) => (
   <span style={{ fontFamily: mono, fontSize: 10.5, letterSpacing: "0.06em", color: tone, fontWeight: 500, overflowWrap: "anywhere" }}>
     {children}
   </span>
@@ -245,7 +245,7 @@ export default function Browse({ onOpenSet, activeSetNum }) {
   );
 }
 
-function SetCard({ set, active, onOpen }) {
+export function SetCard({ set, active, onOpen }) {
   const [hover, setHover] = useState(false);
   const [broken, setBroken] = useState(false);
   useEffect(() => { setBroken(false); }, [set.set_img_url]);

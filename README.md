@@ -11,6 +11,7 @@ through a serverless function so the API key never reaches the browser.
 ```
 src/App.jsx              search bar, demo/live switching, error states
 src/Browse.jsx           theme hierarchy, year filters, set grid
+src/SearchResults.jsx    set-name and character-name search
 src/SetInventory.jsx     the UI — figure roster, exploded diagram, brick grid
 src/lib/rebrickable.js   API client: pagination, slot derivation, rarity
 src/lib/useSetInventory.js  React hook, staged loading
@@ -52,6 +53,14 @@ gitignored — don't commit it.
 specific theme, not its ancestors — so a parent like Star Wars often has no sets
 of its own and the subthemes hold them all. The Browse tab leads with subthemes
 for that reason. The full theme list is fetched once and cached.
+
+**Searching.** The top bar has three modes. Set number loads a set directly.
+Set name and Character search the whole catalogue; character results expand to
+show every set that figure appears in, fetched only when expanded.
+
+**Rare part navigation.** A part in 2–3 sets shows a link to the others, so a
+rare element becomes a route to related sets. Unique parts (1 set) have nowhere
+to go and show no link.
 
 **Set numbers need a variant suffix.** `75192` is normalized to `75192-1`
 automatically.

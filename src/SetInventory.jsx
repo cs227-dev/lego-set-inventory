@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Browse from "./Browse.jsx";
+import SearchResults from "./SearchResults.jsx";
+import { fetchPartColorSets } from "./lib/rebrickable.js";
 
 /* ============================================================================
    SET INVENTORY — drill-down prototype
@@ -60,6 +62,64 @@ function rarity(numSets) {
   if (numSets <= 3) return { label: "Rare", tone: C.flag, note: `${numSets} set${numSets === 1 ? "" : "s"}`, rare: true };
   if (numSets <= 12) return { label: "Uncommon", tone: C.azure, note: `${numSets} sets`, rare: false };
   return { label: "Common", tone: C.muted, note: `${numSets} sets`, rare: false };
+}
+
+/**
+ * A rare part that appears in more than one set is a navigation opportunity:
+ * the other sets are the interesting bit. Unique parts (1 set) have nowhere to
+ * go, so they get no control.
+ */
+function OtherSets({ part, onOpenSet }) {
+  const [open, setOpen] = useState(false);
+  const [sets, setSets] = useState(null);
+  const [err, setErr] = useState(null);
+
+  const eligible = onOpenSet && part.num_sets != null && part.num_sets > 1 && part.num_sets <= 3 && part.color_id != null;
+
+  useEffect(() => {
+    if (!open || sets) return;
+    let live = true;
+    fetchPartColorSets(part.part_num, part.color_id)
+      .then((r) => live && setSets(r))
+      .catch((e) => live && setErr(e.message || "Could not load sets."));
+    return () => { live = false; };
+  }, [open, sets, part.part_num, part.color_id]);
+
+  if (!eligible) return null;
+
+  return (
+    <span className="block mt-1">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{ fontFamily: mono, fontSize: 9.5, letterSpacing: "0.07em", textTransform: "uppercase",
+                 background: "transparent", border: "none", padding: 0, cursor: "pointer",
+                 color: C.azure, textDecoration: "underline" }}
+      >
+        {open ? "Hide other sets" : `Also in ${part.num_sets - 1} other set${part.num_sets - 1 === 1 ? "" : "s"}`}
+      </button>
+      {open && (
+        <span className="block mt-1">
+          {err ? (
+            <Stamp tone={C.flag}>{err}</Stamp>
+          ) : !sets ? (
+            <Stamp>LOADING</Stamp>
+          ) : (
+            sets.map((s) => (
+              <button
+                key={s.set_num}
+                onClick={() => onOpenSet(s.set_num)}
+                className="block text-left w-full px-2 py-1 mt-1"
+                style={{ border: `1px solid ${C.panelEdge}`, borderRadius: 2, background: "transparent", cursor: "pointer" }}
+              >
+                <span style={{ fontFamily: display, fontSize: 11, color: C.ink, overflowWrap: "anywhere" }}>{s.name}</span>
+                <span className="flex gap-2 mt-0.5"><Stamp>{s.set_num}</Stamp><Stamp>{s.year}</Stamp></span>
+              </button>
+            ))
+          )}
+        </span>
+      )}
+    </span>
+  );
 }
 
 /** Single source of truth for "should this be flagged". */
@@ -442,7 +502,7 @@ function FigureCard({ fig, active, onSelect }) {
 
 /* ------------------------------------------- signature: exploded call-out */
 
-function ExplodedDiagram({ fig }) {
+function ExplodedDiagram({ fig, onOpenSet }) {
   const reduced = usePrefersReducedMotion();
   const [open, setOpen] = useState(reduced);
   const [focus, setFocus] = useState(null);
@@ -585,6 +645,7 @@ function ExplodedDiagram({ fig }) {
                 <Stamp tone={C.inkSoft}>{p.part_num}</Stamp>
                 <RarityTag numSets={p.num_sets} />
               </div>
+              <OtherSets part={p} onOpenSet={onOpenSet} />
             </div>
           </div>
         ))}
@@ -597,7 +658,7 @@ function ExplodedDiagram({ fig }) {
 
 const CATS = ["all", "brick", "plate", "tile", "slope", "round", "technic", "other"];
 
-function BrickInventory({ rows: ALL = [] }) {
+function BrickInventory({ rows: ALL = [], onOpenSet }) {
   const [cat, setCat] = useState("all");
   const [sort, setSort] = useState("quantity");
   const [rareOnly, setRareOnly] = useState(false);
@@ -663,6 +724,7 @@ function BrickInventory({ rows: ALL = [] }) {
               {isRare(b.num_sets) && (
                 <div className="mt-1.5">
                   <RarityTag numSets={b.num_sets} />
+                  <OtherSets part={b} onOpenSet={onOpenSet} />
                 </div>
               )}
             </div>
@@ -766,6 +828,7 @@ export default function SetInventory({
   pending = false,
   onOpenSet = null,
   openSignal = 0,
+  searchState = null,
   browsable = false,
 }) {
   const [tab, setTab] = useState(browsable ? "browse" : "set");
@@ -775,6 +838,11 @@ export default function SetInventory({
   useEffect(() => {
     if (openSignal > 0) setTab("set");
   }, [openSignal]);
+
+  // A name search opens its own tab; the nonce makes repeat searches navigate.
+  useEffect(() => {
+    if (searchState) setTab("search");
+  }, [searchState?.nonce]);
   const [selected, setSelected] = useState(null);
 
   const creatures = useMemo(() => bricks.filter(isCreature).map(creatureAsFigure), [bricks]);
@@ -859,6 +927,11 @@ export default function SetInventory({
               Browse
             </button>
           )}
+          {searchState && (
+            <button style={tabStyle(tab === "search")} onClick={() => setTab("search")}>
+              Search
+            </button>
+          )}
           <button style={tabStyle(tab === "set")} onClick={() => setTab("set")} disabled={!setInfo}
                   title={setInfo ? "" : "Load a set first"}>
             Set
@@ -873,6 +946,14 @@ export default function SetInventory({
 
         {tab === "browse" ? (
           <Browse onOpenSet={onOpenSet} activeSetNum={setInfo?.set_num} />
+        ) : tab === "search" && searchState ? (
+          <SearchResults
+            key={searchState.nonce}
+            mode={searchState.mode}
+            query={searchState.query}
+            onOpenSet={onOpenSet}
+            activeSetNum={setInfo?.set_num}
+          />
         ) : !setInfo ? (
           <div className="py-20 text-center">
             <Stamp>NO SET LOADED</Stamp>
@@ -924,14 +1005,14 @@ export default function SetInventory({
                   {selected.isCreature ? (
                     <CreatureDetail key={selected.set_num} fig={selected} />
                   ) : (
-                    <ExplodedDiagram key={selected.set_num} fig={selected} />
+                    <ExplodedDiagram key={selected.set_num} fig={selected} onOpenSet={onOpenSet} />
                   )}
                 </div>
               </div>
             </div>
           )
         ) : (
-          <BrickInventory rows={plainBricks} />
+          <BrickInventory rows={plainBricks} onOpenSet={onOpenSet} />
         )}
 
         <footer className="mt-10 pt-4" style={{ borderTop: `1px solid ${C.panelEdge}` }}>
